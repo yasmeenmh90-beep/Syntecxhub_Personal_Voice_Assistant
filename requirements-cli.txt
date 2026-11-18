@@ -1,0 +1,3 @@
+-r requirements.txt
+SpeechRecognition[audio]>=3.14,<4
+pyttsx3>=2.90,<3
