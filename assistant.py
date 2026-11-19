@@ -200,7 +200,7 @@ def describe_duration(seconds):
 def start_timer(seconds):
     """CLI timer: announce in the terminal when time is up."""
     timer = threading.Timer(
-        seconds, lambda: print(f"\n⏰ NOVA: Your {describe_duration(seconds)} timer is done!")
+        seconds, lambda: print(f"\n⏰ NOVA: Your timer for {describe_duration(seconds)} is done!")
     )
     timer.daemon = True
     timer.start()
@@ -228,7 +228,10 @@ def handle_command(
         return "I did not hear a command. Please try again.", False
     if text in ("exit", "quit", "goodbye", "stop", "stop assistant"):
         return "Goodbye! Have a great day.", True
-    if text in ("help", "commands", "what can you do", "show commands"):
+    if (
+        text in ("commands", "what can you do", "show commands", "list commands")
+        or re.match(r"(?:help|list everything|show (?:me )?everything)\b", text)
+    ):
         return "Try these commands: " + "; ".join(SAMPLES), False
     if text in ("hello", "hi", "hey", "good morning", "good evening"):
         return "Hello! I am NOVA, your personal voice assistant. How can I help?", False
@@ -336,9 +339,7 @@ def handle_command(
                 False,
             )
     if text.startswith("open "):
-        target = text[5:].strip()
-        if target in APPS:
-            return app_launcher(target), False
+        target = re.sub(r"^(?:the |my |up )", "", text[5:].strip())
         websites = {
             "youtube": "https://www.youtube.com",
             "github": "https://github.com",
@@ -349,8 +350,13 @@ def handle_command(
             "maps": "https://www.google.com/maps",
             "google maps": "https://www.google.com/maps",
         }
-        if target in websites:
-            return url_opener(websites[target], target), False
+        # Accept trailing words ("open calculator please", "open notes app"),
+        # but only ever resolve to a name on the fixed allowlists.
+        for name in sorted([*APPS, *websites], key=len, reverse=True):
+            if target == name or target.startswith(name + " "):
+                if name in APPS:
+                    return app_launcher(name), False
+                return url_opener(websites[name], name), False
         return f"I cannot open {target}. Say help for supported apps and sites.", False
     return "Sorry, I don't recognize that command. Say help to hear examples.", False
 

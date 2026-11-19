@@ -119,7 +119,7 @@ export function TimerDock({
               </span>
               <div>
                 <strong>{done ? "Time's up" : formatClock(left)}</strong>
-                <small>{describe(timer.total)} timer</small>
+                <small>Timer · {describe(timer.total)}</small>
               </div>
               <button
                 className="icon-button"

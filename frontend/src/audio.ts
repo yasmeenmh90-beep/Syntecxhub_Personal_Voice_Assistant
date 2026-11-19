@@ -2,15 +2,28 @@ export type Capture = {
   finish: () => Promise<Blob>;
   cancel: () => Promise<void>;
 };
+/** Explain precisely why the browser exposes no microphone API, or return null. */
+export function microphoneUnavailableReason(): string | null {
+  if (typeof navigator.mediaDevices?.getUserMedia === "function") return null;
+  if (!window.isSecureContext)
+    return `Microphone access is blocked on ${location.origin}. Open NOVA at http://127.0.0.1:5173 or http://localhost:5173 instead.`;
+  let embedded = false;
+  try {
+    embedded = window.self !== window.top;
+  } catch {
+    embedded = true;
+  }
+  if (embedded)
+    return "This embedded preview blocks the microphone. Open http://127.0.0.1:5173 in Chrome or Safari to speak; typed commands still work here.";
+  return "This browser does not provide microphone access. Open http://127.0.0.1:5173 in Chrome or Safari; typed commands still work here.";
+}
 export async function capture(
   device: string,
   onLevel: (value: number) => void,
   onSamples?: (samples: number[]) => void,
 ): Promise<Capture> {
-  if (!navigator.mediaDevices?.getUserMedia)
-    throw new Error(
-      "Microphone capture requires localhost and a supported browser.",
-    );
+  const unavailable = microphoneUnavailableReason();
+  if (unavailable) throw new Error(unavailable);
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: device ? { deviceId: { exact: device } } : true,
   });

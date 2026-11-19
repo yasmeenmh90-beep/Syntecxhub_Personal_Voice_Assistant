@@ -534,13 +534,13 @@ describe("dashboard", () => {
     );
     await mount();
     await send("set a timer for 1 second");
-    expect(container.textContent).toContain("1 second timer");
+    expect(container.textContent).toContain("Timer · 1 second");
     expect(button("Cancel timer")).toBeTruthy();
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 1400));
     });
     expect(container.textContent).toContain("Time's up");
-    expect(container.textContent).toContain("Your 1 second timer is done.");
+    expect(container.textContent).toContain("Your timer for 1 second is done.");
     await click("Dismiss timer");
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 1200));

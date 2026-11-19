@@ -149,7 +149,25 @@ class BackendTests(unittest.TestCase):
             wav.setsampwidth(2)
             wav.setframerate(16000)
             wav.writeframes(b"\0" * 32000)
-        for exception in (sr.UnknownValueError(), sr.RequestError("offline")):
+        with self.assertRaisesRegex(ActionError, "silent"):
+            transcribe(audio.getvalue())
+        import math, struct
+        audio = io.BytesIO()
+        with wave.open(audio, "wb") as wav:
+            wav.setnchannels(1)
+            wav.setsampwidth(2)
+            wav.setframerate(16000)
+            wav.writeframes(
+                b"".join(
+                    struct.pack("<h", int(8000 * math.sin(i / 8)))
+                    for i in range(16000)
+                )
+            )
+        for exception in (
+            sr.UnknownValueError(),
+            sr.RequestError("offline"),
+            OSError(86, "Bad CPU type in executable"),
+        ):
             with patch(
                 "speech_recognition.Recognizer.recognize_google", side_effect=exception
             ):

@@ -22,6 +22,14 @@ elif [[ -n "${1:-}" ]]; then
   echo "Usage: bash scripts/setup-macos.sh [--native-audio]"
   exit 1
 fi
+# SpeechRecognition's bundled flac-mac is Intel-only; Apple Silicon needs a native encoder.
+if ! command -v flac >/dev/null; then
+  if command -v brew >/dev/null; then
+    brew install flac
+  else
+    echo "Install the FLAC encoder (brew install flac); speech recognition needs it on Apple Silicon."
+  fi
+fi
 npm --prefix frontend ci
 .venv/bin/python scripts/doctor.py --dependencies-only
 printf '\nInstallation complete. Start both services with: bash scripts/start-local.sh\n'

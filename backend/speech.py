@@ -1,8 +1,23 @@
+import array
 import io
+import logging
+import sys
 import wave
 from .launcher import ActionError
 
 MAX_AUDIO = 4 * 1024 * 1024
+# Peak below ~-46 dBFS means the microphone delivered (near) silence.
+SILENCE_PEAK = 160
+log = logging.getLogger("nova")
+
+
+def peak_level(data):
+    """Return the absolute peak of a mono 16-bit WAV recording."""
+    with wave.open(io.BytesIO(data)) as wav:
+        samples = array.array("h", wav.readframes(wav.getnframes()))
+    if sys.byteorder == "big":
+        samples.byteswap()
+    return max((abs(x) for x in samples), default=0)
 
 
 def transcribe(data):
@@ -18,6 +33,14 @@ def transcribe(data):
                 raise ActionError("Use mono 16-bit WAV audio, at most 20 seconds.")
     except (wave.Error, EOFError, ValueError) as exc:
         raise ActionError("Invalid WAV recording.") from exc
+    peak = peak_level(data)
+    log.info("Recording received: %d bytes, peak level %d / 32767", len(data), peak)
+    if peak < SILENCE_PEAK:
+        raise ActionError(
+            "The recording was silent: your microphone sent no sound. Check the "
+            "input device in Voice Studio (or macOS Sound settings) and watch "
+            "the level bars move while you speak."
+        )
     try:
         import speech_recognition as sr
     except ImportError as exc:
@@ -42,3 +65,10 @@ def transcribe(data):
         ) from exc
     except (wave.Error, EOFError, ValueError) as exc:
         raise ActionError("Invalid WAV recording.") from exc
+    except OSError as exc:
+        # SpeechRecognition shells out to a FLAC encoder; its bundled macOS
+        # binary is Intel-only and fails on Apple Silicon without Rosetta.
+        raise ActionError(
+            "Audio encoder failed (FLAC). On macOS run: brew install flac, "
+            f"then restart the backend. Detail: {exc.strerror or exc}"
+        ) from exc

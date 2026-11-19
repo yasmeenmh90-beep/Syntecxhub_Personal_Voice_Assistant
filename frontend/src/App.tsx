@@ -52,7 +52,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { api, defaults, type Settings, type Result } from "./api";
-import { capture, type Capture } from "./audio";
+import { capture, microphoneUnavailableReason, type Capture } from "./audio";
 type State =
   "Ready" | "Listening" | "Processing" | "Speaking" | "Completed" | "Error";
 type Message = {
@@ -598,10 +598,8 @@ export default function App() {
     busy.current = true;
     setState("Processing");
     try {
-      if (!navigator.mediaDevices?.getUserMedia)
-        throw new Error(
-          "Microphone capture requires localhost and a supported browser.",
-        );
+      const unavailable = microphoneUnavailableReason();
+      if (unavailable) throw new Error(unavailable);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       if (alive.current) {
         setPermission("granted");
@@ -663,9 +661,9 @@ export default function App() {
     } else void submit(quick?.run ?? text);
   }
   function timerDone(timer: Timer) {
-    const label = describe(timer.total) + " timer";
+    const label = "timer for " + describe(timer.total);
     chime();
-    log("Timer finished: " + label, "command", "success");
+    log("Timer finished: " + describe(timer.total), "command", "success");
     add("assistant", `Your ${label} is done.`);
     setNotice(`⏰ Your ${label} is done.`);
     if (liveSettings.current.voice_response && window.speechSynthesis && !busy.current) {

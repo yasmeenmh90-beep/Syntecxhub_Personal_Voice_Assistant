@@ -117,6 +117,15 @@ class AssistantTests(unittest.TestCase):
         self.assertIn("NOVA", self.ask("who are you")[0])
         self.assertIn("Thursday", self.ask("what day is it")[0])
 
+    def test_forgiving_help_and_open(self):
+        self.assertIn("open calculator", self.ask("help list everything")[0])
+        self.ask("open calculator asks you to confirm first")
+        self.ask("open the notes app")
+        self.ask("open youtube please")
+        self.assertEqual(self.apps, ["calculator", "notes"])
+        self.assertEqual(self.urls, ["https://www.youtube.com"])
+        self.assertFalse(self.ask("helpful tips")[0].startswith("Try these"))
+
     def test_no_arbitrary_app(self):
         self.ask("open arbitrary application")
         self.assertEqual(self.apps, [])
